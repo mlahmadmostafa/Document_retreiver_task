@@ -37,7 +37,7 @@ class NLSQLOptimizer:
                 sql_query='SELECT COUNT(*) FROM Customers;'
             ).with_inputs("question", "schema"),
             
-            # Example 2: JOIN with aggregation and aliasing
+            # Example 2: JOIN with aggregation and aliasing, correct quoting for "Order Details"
             dspy.Example(
                 question="What is the total revenue for each product?",
                 schema=schema,
@@ -63,6 +63,34 @@ class NLSQLOptimizer:
                 question="What is the total revenue?",
                 schema=schema,
                 sql_query='SELECT SUM(UnitPrice * Quantity * (1 - Discount)) FROM "Order Details";'
+            ).with_inputs("question", "schema"),
+            
+            # New Example 6: Using julianday for date difference (for DATEDIFF replacement)
+            dspy.Example(
+                question="What is the maximum number of days between order date and shipped date?",
+                schema=schema,
+                sql_query="SELECT MAX(julianday(ShippedDate) - julianday(OrderDate)) FROM Orders WHERE ShippedDate IS NOT NULL;"
+            ).with_inputs("question", "schema"),
+
+            # New Example 7: Using strftime for year extraction (for YEAR replacement)
+            dspy.Example(
+                question="How many orders were placed in 1997?",
+                schema=schema,
+                sql_query="SELECT COUNT(OrderID) FROM Orders WHERE strftime('%Y', OrderDate) = '1997';"
+            ).with_inputs("question", "schema"),
+
+            # New Example 8: Ambiguous column name resolution with aliases
+            dspy.Example(
+                question="What are the order details for order ID 10248?",
+                schema=schema,
+                sql_query='SELECT od.ProductID, od.UnitPrice, od.Quantity FROM "Order Details" od JOIN Orders o ON od.OrderID = o.OrderID WHERE o.OrderID = 10248;'
+            ).with_inputs("question", "schema"),
+
+            # New Example 9: Correct GROUP BY with ProductName
+            dspy.Example(
+                question="List the total quantity sold for each product.",
+                schema=schema,
+                sql_query='SELECT p.ProductName, SUM(od.Quantity) FROM Products p JOIN "Order Details" od ON p.ProductID = od.ProductID GROUP BY p.ProductName;'
             ).with_inputs("question", "schema"),
         ]
     
@@ -100,7 +128,8 @@ class NLSQLOptimizer:
         # Evaluate performance before optimization
         click.echo("\n--- Evaluating BEFORE optimization ---")
         evaluator = dspy.evaluate.Evaluate(devset=trainset, metric=self.metric, num_threads=1, display_progress=True)
-        before_score = evaluator(unoptimized_module)['metric']
+        evaluation_results_before = evaluator(unoptimized_module)
+        before_score = evaluation_results_before.score
         
         # Configure and run the teleprompter
         click.echo("\n--- Running BootstrapFewShot optimization ---")
@@ -109,7 +138,8 @@ class NLSQLOptimizer:
         
         # Evaluate performance after optimization
         click.echo("\n--- Evaluating AFTER optimization ---")
-        after_score = evaluator(optimized_module)['metric']
+        evaluation_results_after = evaluator(optimized_module)
+        after_score = evaluation_results_after.score
         
         # Print summary
         click.echo("\n" + "="*60)

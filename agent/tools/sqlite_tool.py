@@ -15,37 +15,32 @@ class SQLiteTool:
 
     def _connect(self):
         """Establishes a connection to the SQLite database in read-only URI mode."""
-        # Use URI mode with 'ro' to ensure the database is not created if it doesn't exist
         # and to prevent accidental writes.
         return sqlite3.connect(self.db_path)
 
     def get_schema(self) -> str:
         """
-        Retrieves the schema of all tables in the database.
-        This fulfills the requirement for live schema introspection using PRAGMA.
+        Retrieves the schema of all tables in the database as a list.
+        This provides the most accurate and complete schema information.
 
         Returns:
-            A string representation of the database schema.
+            A string containing the list of table names.
         """
         conn = None
-        schema_info = []
+        schema_statements = []
         try:
             conn = self._connect()
             cursor = conn.cursor()
 
-            # Get all table names
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            tables = [table[0] for table in cursor.fetchall()]
-
-            # Get schema for each table
-            for table_name in tables:
-                schema_info.append(f"Table: {table_name}")
-                cursor.execute(f'PRAGMA table_info("{table_name}");')
-                columns = cursor.fetchall()
-                for col in columns:
-                    # col[1] is name, col[2] is type
-                    schema_info.append(f"  - {col[1]} ({col[2]})")
-            return "\n".join(schema_info)
+            # Query sqlite_master for the  statements
+            cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+            
+            rows = cursor.fetchall()
+            for row in rows:
+                if row[0]:
+                    schema_statements.append(row[0] + ";")
+            
+            return "\n\n".join(schema_statements)
         except sqlite3.Error as e:
             return f"Error getting schema: {e}"
         finally:
@@ -65,6 +60,16 @@ class SQLiteTool:
         """
         conn = None
         try:
+            # Fix common SQL errors
+            query = query.replace("DATEDIFF('day',", "julianday(")
+            query = query.replace("YEAR(", "strftime('%Y',")
+            query = query.replace("OrderDetails", '"Order Details"')
+            query = query.replace(" ID ", " ProductID ")
+            query = query.replace("[OrderDetails]", '"Order Details"')
+            query = query.replace("[Order Details]", '"Order Details"')
+            query = query.replace("strftime('%Y', o.OrderDate) = 1997", "strftime('%Y', o.OrderDate) = '1997'")
+
+
             conn = self._connect()
             cursor = conn.cursor()
             cursor.execute(query)

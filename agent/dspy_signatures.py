@@ -10,6 +10,12 @@ class RouteQuestion(dspy.Signature):
     category: str = dspy.OutputField(desc="The category: 'rag', 'sql', or 'hybrid' (lowercase, no quotes).")
 
 class Router(dspy.Module):
+    """You are the query router for the Northwind Retail Analytics Copilot.
+    Classify the user's question into one of the following categories:
+    - 'rag': For questions about policies, qualitative descriptions, or information found in documents.
+    - 'sql': For questions requiring quantitative answers, calculations, or data directly from the database.
+    - 'hybrid': For questions that require both document context and quantitative data from the database.
+    """
     def __init__(self):
         super().__init__()
         self.predictor = dspy.Predict(RouteQuestion)
@@ -22,15 +28,20 @@ class NaturalLanguageToSQL(dspy.Signature):
 
     **CRITICAL INSTRUCTIONS:**
     1.  Output ONLY the SQLite query.
-    2.  Do NOT include any other text, explanations, or markdown formatting like ```sql.
-    3.  Ensure table names with spaces are correctly quoted (e.g., "Order Details").
-    4.  The query must end with a semicolon.
+    2.  Do NOT include any other text, explanations, or markdown formatting.
+    3.  The query must end with a semicolon.
     """
     question: str = dspy.InputField(desc="The user's question, potentially enriched with context from documents.")
     schema: str = dspy.InputField(desc="The complete SQLite database schema.")
     sql_query: str = dspy.OutputField(desc="A single, valid, executable SQLite query.")
 
 class NLSQL(dspy.Module):
+    """You are a SQLite expert for the Northwind Retail Analytics Copilot.
+    Given a database schema and a question, generate a syntactically correct SQLite query.
+    - Use the provided context to inform constraints like dates, product names, or KPIs.
+    - Do not use markdown (e.g., ```sql).
+    - The query must end with a semicolon.
+    """
     def __init__(self):
         super().__init__()
         self.predictor = dspy.Predict(NaturalLanguageToSQL)
