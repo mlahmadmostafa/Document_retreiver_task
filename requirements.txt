@@ -1,0 +1,11 @@
+pytest
+dspy-ai
+langgraph
+langchain-core
+pydantic
+click
+rich
+numpy
+pandas
+scikit-learn
+rank-bm25

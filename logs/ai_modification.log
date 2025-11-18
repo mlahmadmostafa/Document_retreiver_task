@@ -1,0 +1,69 @@
+# AI Modification Log
+
+This log details all modifications made to the project structure and code.
+
+## 1. Initial Setup and File Creation
+- Created the following directories:
+    - `your_project/agent/`
+    - `your_project/agent/rag/`
+    - `your_project/agent/tools/`
+    - `your_project/data/`
+    - `your_project/docs/`
+- Created the following empty files:
+    - `your_project/agent/graph_hybrid.py`
+    - `your_project/agent/dspy_signatures.py`
+    - `your_project/agent/rag/retrieval.py`
+    - `your_project/agent/tools/sqlite_tool.py`
+    - `your_project/run_agent_hybrid.py`
+    - `your_project/sample_questions_hybrid_eval.jsonl`
+    - `your_project/requirements.txt`
+
+## 2. Populated `requirements.txt`
+- Added a list of Python libraries (`dspy-ai`, `langchain`, `langchain-openai`, `langgraph`, `fastapi`, `uvicorn`, `python-dotenv`, `pandas`, `numpy`, `chromadb-client`, `sentence-transformers`, `ipykernel`, `lancedb`, `pyvis`, `tavily-python`, `langchain-community`) to `your_project/requirements.txt`.
+
+## 3. Created Documentation Files
+- Created `your_project/docs/marketing_calendar.md` with marketing plan details.
+- Created `your_project/docs/kpi_definitions.md` with KPI definitions.
+- Created `your_project/docs/catalog.md` with catalog snapshot information.
+
+## 4. Implemented DSPy Signatures (`agent/dspy_signatures.py`)
+- Defined `Router` signature for routing questions.
+- Defined `NLtoSQL` signature for generating SQL queries.
+- Defined `Synthesizer` signature for synthesizing final answers and citations.
+
+## 5. Implemented Retriever Tool (`agent/rag/retrieval.py`)
+- Added functions for:
+    - Loading markdown documents from `your_project/docs`.
+    - Splitting documents into chunks using `RecursiveCharacterTextSplitter`.
+    - Creating and persisting a LanceDB vector store using `SentenceTransformerEmbeddings`.
+    - A `get_retriever` function to initialize and return a document retriever.
+
+## 6. Implemented SQLite Executor Tool (`agent/tools/sqlite_tool.py`)
+- Added `@tool` decorated functions:
+    - `execute_sqlite_query`: Executes SQL queries against a Northwind SQLite database.
+    - `get_sqlite_schema`: Retrieves the schema of the Northwind SQLite database.
+- Included logic to create a dummy `northwind.sqlite` for testing if not present.
+
+## 7. Constructed the Langgraph (`agent/graph_hybrid.py`)
+- Defined an extended `AgentState` to manage the graph's state, including `question`, `route`, `retrieved_docs`, `planning_elements`, `sql_query`, `sql_result`, `final_answer`, `citations`, `error`, and `retries`.
+- Initialized DSPy with `gemini-1.5-flash`.
+- Implemented the following nodes:
+    - `router_node`: Uses DSPy `Router` to determine the processing route (rag, sql, or both).
+    - `retriever_node`: Retrieves documents if the route includes "rag".
+    - `planner_node`: (Placeholder) Extracts planning elements from the question.
+    - `nl_to_sql_node`: Uses DSPy `NLtoSQL` to generate SQL queries based on the question and schema.
+    - `executor_node`: Executes SQL queries using the `sqlite_tool.py` functions.
+    - `synthesizer_node`: Uses DSPy `Synthesizer` to generate the final answer and citations.
+- Configured the `StateGraph` with these nodes, setting `router` as the entry point.
+- Defined conditional edges (`route_decision`, `planner_to_next_decision`) to direct the flow between nodes based on the determined route and intermediate results.
+- Established direct edges between `retriever` -> `planner`, `nl_to_sql` -> `executor`, `executor` -> `synthesizer`, and `synthesizer` -> `agent`.
+
+## 8. Created `run_agent_hybrid.py`
+- Created a script to import and run the compiled Langgraph (`app`) from `agent.graph_hybrid`.
+- Includes a `run_agent` function to execute the graph with a given question.
+- Provides example questions for both RAG-focused and SQL-focused queries.
+- Prints intermediate states and the final answer with citations.
+
+## 9. Moved Project Contents
+- Moved all files and subdirectories from the temporary `your_project` directory to the main project directory.
+- Deleted the empty `your_project` directory.

@@ -1,0 +1,6 @@
+- did action: Modified `agent/tools/sqlite_tool.py` to add a file existence check in `__init__` and removed the read-only mode from `_connect` to allow DML operations.
+- did action: Rewrote `tests/test_sqlite_tool.py` to use a temporary database and test `SQLiteTool` methods more robustly.
+- did action: Corrected indentation and assertion in `tests/test_sqlite_tool.py`.
+- did action: Identified that the "query tool not working" was due to the `db_path` being incorrect (`northwind.db` vs `northwind.sqlite`) and then due to the `conn.commit()` missing for DML operations.
+- did action: Confirmed that the `SQLiteTool` is now functioning correctly and passing all its tests.
+- did action: Observed that the agent still returns "no results" for some queries, indicating a data discrepancy between the `northwind.sqlite` database and the sample questions.
